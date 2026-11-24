@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Job Agent</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1a1d23;--mu:#667085;--bd:#e3e6eb;--ac:#2f6fed;--ok:#17a34a;--wn:#d97706;--bad:#dc2626;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161a;--card:#1d2026;--tx:#eceef2;--mu:#98a0ae;--bd:#2d313a;--ac:#6b9bff;color-scheme:dark}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0}h2{font-size:15px;margin:0 0 10px}
+.sub{color:var(--mu);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
+.stat b{font-size:22px;display:block}.stat span{color:var(--mu);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{border:1px solid var(--bd);background:transparent;color:var(--tx);border-radius:99px;padding:5px 12px;cursor:pointer;font:inherit;font-size:13px}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+a.btn,button.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:7px 12px;text-decoration:none;cursor:pointer;font:inherit;font-size:13px}
+.btn.alt{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+input,select,textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:8px}
+.job{border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card)}
+.job h3{margin:0;font-size:15px}.meta{color:var(--mu);font-size:13px}
+.score{font-weight:700;border-radius:99px;padding:2px 10px;font-size:12px;color:#fff}
+.flag{color:var(--wn);font-size:13px;font-weight:600}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px}
+.empty{color:var(--mu);text-align:center;padding:20px}
+</style></head><body><main>
+<h1 id="ttl">Job Agent</h1>
+<p class="sub" id="sub"></p>
+<div class="card" id="welcome" style="display:none"><h2>Welcome 👋 Set up in 3 steps</h2><p class="meta" style="margin:0">1) Tick the domains you want below (or add your own role). 2) Enter your experience, expected salary, cities and notice period. 3) Upload your resume under section 3 to get a match % on every job. Everything stays in your browser, so your details are private to you.</p></div>
+<div class="stats" id="stats"></div>
+
+<div class="card"><h2>1 · Pick MBA domains (select one or more)</h2>
+<div class="chips" id="roles"></div>
+<div class="row" style="margin-bottom:8px"><input id="cr" placeholder="Add your own role (e.g. Risk Analyst)" style="flex:1;min-width:180px"><button class="btn alt" id="crb">Add role</button></div><div class="meta" id="custl" style="margin-bottom:8px"></div>
+<div class="row" style="margin-bottom:8px"><label class="meta">Portal buttons search for <select id="psel"></select></label><label class="meta">Sort list by <select id="srt"><option value="match">Resume match %</option><option value="sim">Role fit %</option><option value="new">Newest first</option><option value="sal">Highest salary</option></select></label></div>
+<div class="row">
+<details id="locd" style="position:relative"><summary class="chip" id="locs" style="list-style:none;cursor:pointer">Location: Pan India ▾</summary><div id="locp" style="position:absolute;z-index:5;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-top:4px;width:min(300px,86vw);max-height:260px;overflow:auto"></div></details>
+<select id="age"><option value="1">Posted: last 24 hours</option><option value="7" selected>Posted: last 7 days</option><option value="30">Posted: last 30 days</option></select>
+<select id="npf" title="Your notice period"><option value="0">My notice: Immediate</option><option value="15">My notice: 15 days</option><option value="30" selected>My notice: 30 days</option><option value="45">My notice: 45 days</option><option value="60">My notice: 60 days</option><option value="90">My notice: 90 days</option></select>
+<label class="meta"><input type="checkbox" id="npx" checked> Hide roles needing shorter notice than mine</label>
+<input id="ey" type="number" min="0" placeholder="Exp yrs" style="width:90px"><input id="em" type="number" min="0" max="11" placeholder="Months" style="width:90px"><input id="exp" type="hidden">
+<input id="esn" type="number" min="0" placeholder="Min LPA" style="width:100px"><input id="esx" type="number" min="0" placeholder="Max LPA (25 = 25+)" style="width:150px">
+<label class="meta"><input type="checkbox" id="shs"> Hide jobs with no salary shown</label>
+</div><div id="ports" style="margin-top:8px"></div>
+<p class="meta" style="margin:8px 0 0">Open a portal, find a good role, then add it below. Portal buttons use your first selected city, while the list below filters by all selected cities. The agent scores it against your profile and salary.</p></div>
+
+<div class="card"><h2>Resume · suggested roles &amp; jobs</h2>
+<div class="row"><input type="file" id="rf" accept=".pdf,.docx,.txt"><button class="btn" id="ra">Analyze resume</button><span class="meta" id="rs"></span></div>
+<details style="margin-top:6px"><summary class="meta" style="cursor:pointer">Or paste resume text</summary><textarea id="rt" rows="5" style="width:100%"></textarea></details>
+<div id="sg"></div>
+<p class="meta" style="margin:8px 0 0">Your resume is read inside your browser and never uploaded. Only the detected skills are saved here.</p></div>
+
+<div class="card"><h2>2 · Similar roles from all portals</h2>
+<div class="row" style="margin-bottom:8px"><input id="feedu" placeholder="Optional jobs.json link (fallback)" style="flex:1;min-width:200px"><button class="btn" id="feedb">Refresh latest jobs</button><button class="btn alt" id="cfgb" title="Tells fetch_jobs.py which extra roles and cities to search">Download search config</button><span class="meta" id="fm"></span></div>
+<p class="meta" id="rm"></p><div id="res"></div>
+<details><summary class="meta" style="cursor:pointer">Import scraped jobs (JSON)</summary>
+<p class="meta">Paste the JSON array produced by the Chrome agent. Fields: title, company, location, source, posted (YYYY-MM-DD), salary_min, salary_max, notice_period, experience (e.g. 2-4), skills, url.</p>
+<textarea id="imp" rows="5" style="width:100%"></textarea>
+<div class="row" style="margin-top:6px"><button class="btn" id="impb">Import</button><span class="meta" id="im"></span></div></details></div>
+
+<div class="card"><h2>3 · Add a job manually</h2>
+<div class="grid">
+<input id="t" placeholder="Job title *"><input id="c" placeholder="Company *"><input id="l" placeholder="Location">
+<input id="smin" type="number" placeholder="Min salary (LPA)"><input id="smax" type="number" placeholder="Max salary (LPA)">
+<input id="np" placeholder="Notice period (e.g. 30 days)"><input id="u" placeholder="Job link"><select id="src"><option>LinkedIn</option><option>Naukri</option><option>Indeed</option><option>IIMJobs</option><option>Foundit</option><option>Wellfound</option><option>Company career page</option></select><label class="meta">Posted on<input id="pd" type="date"></label></div>
+<div class="row"><button class="btn" id="add">Add &amp; score</button><span class="meta" id="msg"></span></div></div>
+
+<div class="card"><h2>4 · Application tracker</h2>
+<div class="tabs" id="tabs"></div><div id="list"></div></div>
+
+<div class="card"><h2>Your profile settings</h2>
+<div class="grid">
+<label class="meta">Your name (optional)<input id="pname" placeholder="e.g. Aarav"></label>
+<label class="meta">Min salary (LPA)<input id="pmin" type="number" value="0"></label>
+<label class="meta">Max salary (LPA, 25 = 25+)<input id="pmax" type="number" value="25"></label>
+<label class="meta">Preferred cities (Pan India = all)<input id="pcity" value="Pan India"></label>
+<label class="meta">Your notice period (days)<input id="pnp" type="number" value="30"></label></div>
+<p class="meta" style="margin:0">Data is saved in this browser only, so everyone who opens this page has their own private profile.</p></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>
+const DOMAINS={
+"Consulting":{r:["Associate Consultant","Management Consultant","Strategy Consultant","Business Consultant"],t:/consult|advisory/i,k:["consulting","consultant","client engagement","stakeholder management","problem solving","market sizing","due diligence","advisory","business case","transformation","workshop"]},
+"Strategy":{r:["Strategy Manager","Corporate Strategy Manager","Strategy and Operations Manager","Chief of Staff","Business Strategy Manager"],t:/strateg|chief of staff|corporate development|business excellence/i,k:["strategy","strategic planning","corporate strategy","business planning","market entry","competitive analysis","okr","roadmap","m&a","go-to-market","gtm","business case"]},
+"B2B Sales":{r:["Key Account Manager","Business Development Manager","Enterprise Sales Manager","Account Manager","Solution Sales Manager"],t:/key account|business development|enterprise sales|account manager|account executive|b2b|solution sales|inside sales|corporate sales|channel sales|partnership/i,k:["b2b","key account","business development","enterprise sales","lead generation","client acquisition","account management","negotiation","pipeline","crm","channel partners","revenue growth","upselling"]},
+"Sales & Marketing":{r:["Marketing Manager","Brand Manager","Product Marketing Manager","Growth Manager","Sales Manager","Category Manager","Digital Marketing Manager"],t:/marketing|brand|growth|sales manager|sales lead|category|merchandis|trade marketing/i,k:["marketing","campaign","seo","sem","social media","brand","google ads","content","lead generation","digital marketing","crm","market research","category management","merchandising","pricing","assortment","trade marketing","go-to-market"]},
+"Finance":{r:["Financial Analyst","Corporate Finance Manager","FP&A Manager","Investment Banking Associate","Equity Research Analyst","Private Equity Associate","Credit Risk Manager","Finance Business Partner"],t:/financ|fp&a|investment bank|equity research|private equity|venture capital|credit (analyst|risk|manager|underwrit)|treasury|valuation|portfolio manage|wealth/i,k:["financial modelling","financial modeling","fp&a","valuation","budgeting","forecasting","investment banking","equity research","credit","treasury","financial analysis","p&l","cost control","due diligence","portfolio","risk"]},
+"Business Analytics":{r:["Business Analyst","Business Analytics Manager","Data Analytics Manager","Product Analyst","Insights Manager"],t:/business analy|analytics|insight|data analy|bi analyst|business intelligence|reporting analyst|decision science/i,k:["business analysis","analytics","sql","power bi","tableau","excel","dashboard","data analysis","python","kpi","reporting","insights","requirements gathering","a/b testing"]},
+"Product Management":{r:["Product Manager","Associate Product Manager","Product Owner","Product Operations Manager"],t:/product manager|product owner|product management|product lead|product operations/i,k:["product management","product roadmap","user stories","prd","agile","scrum","product strategy","user research","backlog","go-to-market","a/b testing","stakeholder management"]},
+"Operations":{r:["Assistant Manager Operations","Deputy Manager Operations","Operations Manager","Business Operations Manager","Program Manager","Process Excellence Manager"],t:/operation|program manager|programme manager|process excellence|business excellence|project manager/i,k:["operations","process improvement","sla","kpi","mis","lean","six sigma","vendor management","service delivery","program management","project management","process excellence"]},
+"Supply Chain & Procurement":{r:["Deputy Manager Supply Chain","Supply Chain Manager","Procurement Manager","Demand Planning Manager","Logistics Manager","Strategic Sourcing Manager"],t:/supply chain|logistics|scm|warehouse|inventory|procurement|sourcing|purchas|buyer|demand plan|supply plan|planner/i,k:["supply chain","scm","inventory","logistics","warehouse","s&op","sap","distribution","fulfilment","fulfillment","3pl","procurement","sourcing","negotiation","purchase order","rfq","vendor","supplier","cost saving","tendering","demand planning","forecasting","forecast","replenishment"]},
+"HR & People":{r:["HR Business Partner","Talent Acquisition Manager","HR Manager","Compensation and Benefits Manager","Learning and Development Manager"],t:/\bhr\b|human resource|talent|people (partner|operations|business)|recruit|compensation|learning and development|l&d/i,k:["hr business partner","talent acquisition","recruitment","employee engagement","compensation","payroll","performance management","onboarding","learning and development","hris","attrition"]}
+};
+const FAM=DOMAINS;
+const KEYS=["trainee","marketing","operations","supply chain","logistics","procurement","demand","planner","category","brand","growth","vendor","inventory","sourcing","warehouse","consult","strateg","sales","business development","key account","financ","analyst","analytics","product manager","chief of staff","program manager","hr "];
+const ST=["Saved","Applied","Interview","Offer","Rejected"];
+let pool=[],jobs=[],sel="",selDom=[],cust=[],lim=100,tab="All",prof={pmin:0,pmax:25,pcity:"Pan India",pnp:30,name:""};
+const $=id=>document.getElementById(id);
+function load(){try{RES=JSON.parse(localStorage.getItem("ja_res")||"null")||RES;selLoc=JSON.parse(localStorage.getItem("ja_loc")||"[]");cust=JSON.parse(localStorage.getItem("ja_cust")||"[]");applyCustom();selDom=(JSON.parse(localStorage.getItem("ja_dom")||"null")||[]).filter(d=>DOMAINS[d]);if(RES.fams.some(f=>!FAM[f]&&f!=="My roles"))RES={fams:[],skills:[]};RES.fams=RES.fams.filter(f=>FAM[f]);pool=JSON.parse(localStorage.getItem("ja_pool")||"[]");jobs=JSON.parse(localStorage.getItem("ja_jobs")||"[]");Object.assign(prof,JSON.parse(localStorage.getItem("ja_prof2")||"{}"));}catch(e){}
+$("pname").value=prof.name||"";$("pmin").value=prof.pmin;$("pmax").value=prof.pmax;$("pcity").value=prof.pcity;$("pnp").value=prof.pnp;$("npf").value=String(prof.pnp);setExpUI();$("esn").value=prof.pmin;$("esx").value=prof.pmax}
+function save(){try{localStorage.setItem("ja_jobs",JSON.stringify(jobs));localStorage.setItem("ja_prof2",JSON.stringify(prof))}catch(e){}}
+function score(j){let s=0;const t=(j.t+" "+(j.n||"")).toLowerCase();
+if(KEYS.some(k=>t.includes(k)))s+=45;
+if(j.smin||j.smax){const lo=j.smin||j.smax,hi=j.smax||j.smin;if(hi>=prof.pmin)s+=(lo>=prof.pmin?35:25);}else s+=10;
+const cs=prof.pcity.toLowerCase().split(",").map(x=>x.trim()).filter(Boolean);
+if(cs.some(c=>c==="pan india"||(j.l||"").toLowerCase().includes(c)))s+=20;
+if(/head|director|vp|avp|general manager|chief/i.test(j.t))s-=20;
+const a=ageD(j);if(a!==null){if(a>30)s-=25;else if(a>14)s-=10}
+return Math.max(0,Math.min(100,s))}
+function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function links(){if(!sel){$("ports").innerHTML='<span class="meta">Pick a domain to get portal search buttons.</span>';return}
+const city=selLoc[0]||"",loc=city||"India",k=encodeURIComponent(sel),l=encodeURIComponent(loc),d=$("age").value,
+slug=sel.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),q=sel.replace(/\s+/g,"+"),lq=loc.replace(/\s+/g,"+"),
+tp={1:"r86400",7:"r604800",30:"r2592000"}[d],g={1:"d",7:"w",30:"m"}[d],
+cs=c=>c.toLowerCase().replace(/\s+/g,"-"),nk=city?"-in-"+(city==="Delhi NCR"?"delhi-ncr":cs(city)):"",
+sh=city?"-in-"+(city==="Delhi NCR"?"delhi":city==="Bengaluru"?"bangalore":cs(city)):"",
+gs=dom=>`https://www.google.com/search?q=site:${dom}+${q}+${lq}`;
+const G=[
+["India · all-round job boards",[
+["LinkedIn",`https://www.linkedin.com/jobs/search/?keywords=${k}&location=${l}&f_TPR=${tp}&sortBy=DD`],
+["Naukri",`https://www.naukri.com/${slug}-jobs${nk}?jobAge=${d}`],
+["Indeed India",`https://in.indeed.com/jobs?q=${k}&l=${l}&fromage=${d}&sort=date`],
+["Foundit",`https://www.foundit.in/srp/results?query=${q}&locations=${lq}`],
+["Shine",`https://www.shine.com/job-search/${slug}-jobs${sh}`],
+["TimesJobs",`https://www.timesjobs.com/candidate/job-search.html?searchType=personalizedSearch&from=submit&txtKeywords=${q}&txtLocation=${city?lq:""}`],
+["Glassdoor India",`https://www.glassdoor.co.in/Job/jobs.htm?sc.keyword=${k}`],
+["Google Jobs",`https://www.google.com/search?q=${q}+jobs+${lq}&ibp=htl;jobs&tbs=qdr:${g}`]]],
+["High-paying · mid to senior · MBA focused",[
+["IIMJobs",`https://www.iimjobs.com/search/${slug}`],
+["Instahyre",gs("instahyre.com")],
+["Wellfound (startups)",`https://wellfound.com/role/${slug}`],
+["Cutshort",gs("cutshort.io")],
+["Michael Page India",gs("michaelpage.co.in")],
+["Randstad India",gs("randstad.in")]]],
+["Remote jobs",[
+["LinkedIn Remote",`https://www.linkedin.com/jobs/search/?keywords=${k}&location=India&f_WT=2&f_TPR=${tp}&sortBy=DD`],
+["Indeed Remote",`https://in.indeed.com/jobs?q=${k}+remote&fromage=${d}&sort=date`],
+["We Work Remotely",`https://weworkremotely.com/remote-jobs/search?term=${q}`],
+["Remote OK",`https://remoteok.com/remote-${slug}-jobs`],
+["Remotive",gs("remotive.com")],
+["Himalayas",gs("himalayas.app")]]]
+];
+const R=[
+["Consulting & finance",[
+["McKinsey","https://www.mckinsey.com/careers/search-jobs"],
+["BCG","https://careers.bcg.com/"],
+["Bain","https://www.bain.com/careers/find-a-role/"],
+["Deloitte",gs("deloitte.com")],
+["EY",gs("careers.ey.com")],
+["PwC India",gs("pwc.in")],
+["KPMG",gs("kpmg.com")],
+["Accenture",`https://www.accenture.com/in-en/careers/jobsearch?jk=${k}`],
+["Goldman Sachs",gs("goldmansachs.com")],
+["J.P. Morgan",gs("careers.jpmorgan.com")]]],
+["Tech, consumer & FMCG",[
+["Amazon",`https://www.amazon.jobs/en/search?base_query=${q}&loc_query=India`],
+["Google",`https://www.google.com/about/careers/applications/jobs/results/?q=${k}&location=India`],
+["Microsoft",`https://jobs.careers.microsoft.com/global/en/search?q=${k}&lc=India`],
+["Flipkart",gs("flipkartcareers.com")],
+["Unilever / HUL",gs("careers.unilever.com")]]],
+["Government of India",[["National Career Service","https://www.ncs.gov.in/"]]]
+];
+const row=(t,a)=>`<div class="meta" style="margin:8px 0 4px"><b>${t}</b></div><div class="row">${a.map(p=>`<a class="btn" target="_blank" rel="noopener noreferrer" href="${p[1]}">${p[0]}</a>`).join("")}</div>`;
+$("ports").innerHTML=G.map(x=>row(x[0],x[1])).join("")+`<details style="margin-top:8px"><summary class="meta" style="cursor:pointer"><b>Top recruiters' official career pages (${R.reduce((n,x)=>n+x[1].length,0)})</b></summary>${R.map(x=>row(x[0],x[1])).join("")}</details><p class="meta" style="margin:8px 0 0">Every button opens an official site of a well-known job board or employer (or a Google search limited to that site). Genuine employers never charge to apply or interview, so never pay anyone for a job.</p>`}
+function ageD(j){return j.pd?Math.floor((Date.now()-new Date(j.pd))/864e5):null}
+function agetxt(j){const a=ageD(j);return a===null?"Date n/a":a<=0?"Posted today":`Posted ${a}d ago`}
+function applyCustom(){if(cust.length){const w=[...new Set(cust.join(" ").toLowerCase().split(/\W+/).filter(x=>x.length>3))];DOMAINS["My roles"]={r:cust.slice(),t:new RegExp(cust.map(c=>c.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"i"),k:w}}else{delete DOMAINS["My roles"];selDom=selDom.filter(d=>d!=="My roles")}}
+function saveCust(){try{localStorage.setItem("ja_cust",JSON.stringify(cust))}catch(e){}}
+function hdr(){const n=(prof.name||"").trim();$("ttl").textContent=n?n+"'s Job Agent":"Job Agent";
+const e=prof.exp,et=e==null?"Add your experience":Math.floor(e+1e-6)+" yrs "+Math.round((e-Math.floor(e+1e-6))*12)+" mo experience",
+sal=prof.pmin||prof.pmax<25?`₹${prof.pmin||0}–${prof.pmax>=25?"25+":prof.pmax} LPA`:"Any salary";
+$("sub").textContent=[selDom.length?selDom.join(" · "):"Pick your domains below",et,sal,prof.pcity||"Pan India"].join("  |  ");
+$("welcome").style.display=(!selDom.length&&e==null)?"block":"none"}
+function cfgDownload(){const c=selLoc.map(x=>x==="Delhi NCR"?"Delhi":x);const o={extra_roles:cust,cities:c.length?c:[""],max_days:7,pages:2};
+const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:"application/json"}));a.download="config.json";a.click()}
+function roleList(){return selDom.flatMap(d=>DOMAINS[d].r)}
+function fillPsel(){const l=roleList();if(!l.includes(sel))sel=l[0]||sel;$("psel").innerHTML=l.map(r=>`<option ${r===sel?"selected":""}>${esc(r)}</option>`).join("")}
+function domSet(a){selDom=a;lim=100;try{localStorage.setItem("ja_dom",JSON.stringify(a))}catch(e){}roles();results()}
+function roles(){$("custl").innerHTML=cust.length?"My roles: "+cust.map((c,i)=>`${esc(c)} <a href="#" data-rm="${i}">×</a>`).join(" · "):"";
+$("custl").querySelectorAll("[data-rm]").forEach(a=>a.onclick=e=>{e.preventDefault();cust.splice(+a.dataset.rm,1);saveCust();applyCustom();domSet(selDom)});
+$("roles").innerHTML=`<button class="chip" data-all>Select all</button><button class="chip" data-none>Clear</button>`+Object.keys(DOMAINS).map(d=>`<button class="chip ${selDom.includes(d)?"on":""}" data-d="${esc(d)}">${esc(d)}</button>`).join("");
+$("roles").querySelector("[data-all]").onclick=()=>domSet(Object.keys(DOMAINS));
+$("roles").querySelector("[data-none]").onclick=()=>domSet([]);
+$("roles").querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const d=b.dataset.d;domSet(selDom.includes(d)?selDom.filter(x=>x!==d):[...selDom,d])});
+fillPsel();links()}
+function culture(c){c=(c||"").trim();if(!c)return"";const e=encodeURIComponent(c),q=e.replace(/%20/g,"+"),gs=d=>`https://www.google.com/search?q=site:${d}+${q}+reviews`,
+ask="Give me a brief on the work culture at "+c+" in India: work-life balance, learning and growth, pay and benefits, management style, recent hiring or layoff news, and red flags. Use recent sources and cite them.",
+L=[["AmbitionBox reviews",gs("ambitionbox.com")],["Glassdoor",`https://www.glassdoor.co.in/Search/results.htm?keyword=${e}`],["Indeed reviews",gs("in.indeed.com/cmp")],["LinkedIn company",`https://www.linkedin.com/search/results/companies/?keywords=${e}`],["Layoff & hiring news",`https://www.google.com/search?q=${q}+layoffs+OR+hiring+India&tbm=nws`]];
+return `<details style="margin-top:8px"><summary class="meta" style="cursor:pointer">🏢 Company culture · ${esc(c)}</summary><p class="meta" style="margin:6px 0">Check these before you apply. Look at work-life balance, growth and promotions, pay fairness, manager quality and layoff news. A few reviews are not the whole story, so compare several sources.</p><div class="row">${L.map(x=>`<a class="btn alt" target="_blank" rel="noopener noreferrer" href="${x[1]}">${x[0]}</a>`).join("")}<a class="btn" target="_blank" rel="noopener noreferrer" href="https://claude.ai/new?q=${encodeURIComponent(ask)}">Get an AI culture brief</a></div></details>`}
+function gcal(j){const d=new Date(j.when);if(isNaN(d))return"";const f=x=>x.toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+const e=new Date(d.getTime()+3600000);
+return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Interview: "+j.t+" @ "+j.c)}&dates=${f(d)}/${f(e)}&details=${encodeURIComponent(j.u||"")}`}
+function render(){
+hdr();
+const cnt=s=>jobs.filter(j=>j.s===s).length;
+$("stats").innerHTML=`<div class="stat"><b>${jobs.length}</b><span>Total jobs</span></div>`+ST.map(s=>`<div class="stat"><b>${cnt(s)}</b><span>${s}</span></div>`).join("");
+$("tabs").innerHTML=["All",...ST].map(s=>`<button class="chip ${s===tab?"on":""}" data-s="${s}">${s}</button>`).join("");
+$("tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.s;render()});
+const v=jobs.filter(j=>tab==="All"||j.s===tab).sort((a,b)=>score(b)-score(a));
+if(!v.length){$("list").innerHTML='<div class="empty">No jobs here yet. Add one above.</div>';return}
+$("list").innerHTML=v.map(j=>{const sc=score(j),col=sc>=70?"var(--ok)":sc>=45?"var(--wn)":"var(--bad)";
+const old=j.s==="Applied"&&j.ad&&(Date.now()-j.ad)>7*864e5;
+return `<div class="job"><div class="row" style="justify-content:space-between"><div><h3>${esc(j.t)} · ${esc(j.c)}</h3>
+<div class="meta">${esc(j.src)} · ${agetxt(j)} · Notice: ${esc(j.np)||"not stated"} · ${esc(j.l)||"Location n/a"} · ${j.smin||j.smax?`₹${j.smin||"?"}–${j.smax||"?"} LPA`:"Salary n/a"} ${j.u?`· <a href="${esc(j.u)}" target="_blank" rel="noopener">Open</a>`:""}</div></div>
+<span class="score" style="background:${col}">${sc}% match</span></div>
+${culture(j.c)}${ageD(j)>30&&j.s==="Saved"?'<div class="flag">⚠️ Posted over 30 days ago. It may be closed, so verify before applying.</div>':""}${old?'<div class="flag">⏰ Applied over 7 days ago. Time to follow up.</div>':""}
+<div class="row" style="margin-top:8px">
+<select data-id="${j.id}" data-f="s">${ST.map(s=>`<option ${s===j.s?"selected":""}>${s}</option>`).join("")}</select>
+${j.s==="Interview"?`<input type="datetime-local" data-id="${j.id}" data-f="when" value="${esc(j.when)}">${j.when?`<a class="btn" target="_blank" rel="noopener" href="${gcal(j)}">Add to Calendar</a>`:""}`:""}
+<input data-id="${j.id}" data-f="n" placeholder="Notes" value="${esc(j.n)}" style="flex:1;min-width:140px">
+<button class="btn alt" data-del="${j.id}">Delete</button></div></div>`}).join("");
+$("list").querySelectorAll("[data-f]").forEach(el=>el.onchange=()=>{const j=jobs.find(x=>x.id==el.dataset.id);const f=el.dataset.f;j[f]=el.value;
+if(f==="s"&&el.value==="Applied")j.ad=Date.now();save();render()});
+$("list").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{jobs=jobs.filter(x=>x.id!=b.dataset.del);save();render()})}
+$("add").onclick=()=>{const t=$("t").value.trim(),c=$("c").value.trim();
+if(!t||!c){$("msg").textContent="Title and company are required.";return}
+const j={id:Date.now(),t,c,l:$("l").value.trim(),smin:+$("smin").value||0,smax:+$("smax").value||0,u:$("u").value.trim(),src:$("src").value,pd:$("pd").value,np:$("np").value.trim(),s:"Saved",n:""};
+jobs.push(j);save();["t","c","l","smin","smax","u","pd","np"].forEach(i=>$(i).value="");
+$("msg").textContent=`Added with ${score(j)}% match.`;render()};
+["pmin","pmax","pcity","pnp"].forEach(i=>$(i).onchange=()=>{prof.pmin=+$("pmin").value;prof.pmax=+$("pmax").value;prof.pcity=$("pcity").value;prof.pnp=+$("pnp").value;$("esn").value=prof.pmin;$("esx").value=prof.pmax;save();render();results()});
+$("age").onchange=links;
+let selLoc=[];
+const CITIES=["Bengaluru","Hyderabad","Mumbai","Pune","Delhi NCR","Chennai","Kolkata","Ahmedabad","Jaipur","Chandigarh","Kochi","Coimbatore","Indore","Lucknow","Nagpur","Surat","Vadodara","Visakhapatnam","Vijayawada","Bhubaneswar","Bhopal","Thiruvananthapuram","Mysuru","Nashik","Remote"];
+const ALIAS={"Bengaluru":/bengaluru|bangalore/,"Delhi NCR":/delhi|ncr|gurgaon|gurugram|noida|faridabad|ghaziabad/,"Mumbai":/mumbai|thane/,"Hyderabad":/hyderabad|secunderabad/,"Chennai":/chennai|madras/,"Kolkata":/kolkata|calcutta/,"Visakhapatnam":/visakhapatnam|vizag/,"Thiruvananthapuram":/thiruvananthapuram|trivandrum/,"Mysuru":/mysuru|mysore/};
+function locOk(j){if(!selLoc.length)return true;const l=(j.l||"").toLowerCase();if(/remote|pan india|anywhere|multiple/.test(l))return true;return selLoc.some(c=>ALIAS[c]?ALIAS[c].test(l):l.includes(c.toLowerCase()))}
+function locUI(){const p=$("locp"),st=p.scrollTop;
+p.innerHTML=`<label class="meta" style="display:block"><input type="checkbox" data-all ${selLoc.length?"":"checked"}> Pan India (all)</label>`+CITIES.map(c=>`<label class="meta" style="display:block"><input type="checkbox" data-c="${c}" ${selLoc.includes(c)?"checked":""}> ${c}</label>`).join("");
+$("locs").textContent="Location: "+(selLoc.length?(selLoc.length>2?selLoc.length+" cities":selLoc.join(", ")):"Pan India")+" ▾";
+p.scrollTop=st;
+p.querySelector("[data-all]").onchange=()=>locSet([]);
+p.querySelectorAll("[data-c]").forEach(b=>b.onchange=()=>locSet(b.checked?[...selLoc,b.dataset.c]:selLoc.filter(x=>x!==b.dataset.c)))}
+function locSet(a){selLoc=a;try{localStorage.setItem("ja_loc",JSON.stringify(a))}catch(e){}
+prof.pcity=a.length?a.join(", "):"Pan India";$("pcity").value=prof.pcity;save();locUI();links();render();results()}
+$("npf").onchange=()=>{prof.pnp=+$("npf").value;$("pnp").value=prof.pnp;save();render();results()};$("npx").onchange=results;
+const LV=["assistant","deputy","manager","management","trainee","senior","executive"];
+function simR(j,role){const w=role.toLowerCase().split(/\s+/),d=w.filter(x=>!LV.includes(x)),l=w.filter(x=>LV.includes(x)),t=(j.t||"").toLowerCase();
+const dm=d.filter(x=>t.includes(x.replace(/s$/,""))).length;if(!d.length||dm/d.length<(d.length<=2?1:.6))return 0;
+return Math.round(dm/d.length*70+(l.length&&l.every(x=>t.includes(x))?30:l.some(x=>t.includes(x))?15:0))}
+function sim(j){let best=0,dom="";selDom.forEach(d=>{const D=DOMAINS[d];let s=0;D.r.forEach(r=>{s=Math.max(s,simR(j,r))});if(s===0&&D.t.test(j.t||""))s=50;if(s>best){best=s;dom=d}});return{s:best,dom}}
+function npDays(s){if(!s)return null;s=String(s).toLowerCase();if(/immediate|asap/.test(s))return 0;const m=s.match(/(\d+)\s*(day|week|month)/);if(!m)return null;return +m[1]*({day:1,week:7,month:30}[m[2]])}
+function npBadge(s){const n=npDays(s),y=prof.pnp;if(!s||n===null)return `<span class="meta">Notice period: not stated</span>`;
+return n<y?`<span class="flag">Notice period: ${esc(s)} ⚠ yours is ${y} days</span>`:`<span class="flag" style="color:var(--ok)">Notice period: ${esc(s)} ✓</span>`}
+function salTxt(j){const a=j.smin||0,b=j.smax||0;if(!a&&!b)return `<span class="meta">Salary not disclosed</span>`;const t=a&&b&&a!==b?`₹${a}–${b} LPA`:`₹${a||b} LPA`;return `<b>${t}</b>${j.sp?' <span class="meta">(estimated)</span>':''}`}
+function mc(m){return m>=70?"var(--ok)":m>=45?"var(--wn)":"var(--bad)"}
+function results(){hdr();suggest();
+const r=pool.map(j=>{const q=sim(j),m=resumeMatch(j);return{j,s:q.s,dom:q.dom,m:m?m.m:null}}).filter(x=>x.s>0&&locOk(x.j)&&levelOk(x.j)&&expFit(x.j)!==-1&&salOk(x.j)&&(!$("npx").checked||npDays(x.j.np)===null||npDays(x.j.np)>=prof.pnp));
+const so=$("srt").value,sv=j=>j.smax||j.smin||0;
+r.sort((a,b)=>so==="sim"?b.s-a.s:so==="new"?(ageD(a.j)??999)-(ageD(b.j)??999):so==="sal"?sv(b.j)-sv(a.j):((b.m??-1)-(a.m??-1))||b.s-a.s);
+$("rm").textContent=!selDom.length?"Select at least one domain above.":pool.length?`${r.length} matching roles across ${selDom.length} domain${selDom.length>1?"s":""}, from ${pool.length} imported listings.`:"No listings imported yet. Click Refresh latest jobs or import below.";
+$("res").innerHTML=r.slice(0,lim).map(({j,s,dom,m})=>`<div class="job"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h3>${esc(j.t)} · ${esc(j.c)}</h3><div class="meta">${esc(j.src)} · ${agetxt(j)} · ${esc(j.l)||"Location n/a"} ${j.u?`· <a href="${esc(j.u)}" target="_blank" rel="noopener">Open</a>`:""}</div><div style="margin-top:4px">${salTxt(j)} <span class="meta">· ${esc(dom)}</span></div></div><div style="text-align:right">${m===null?`<span class="meta">Analyze resume<br>for match %</span>`:`<span class="score" style="background:${mc(m)}">${m}% resume match</span>`}<div class="meta" style="margin-top:4px">${s}% role fit</div></div></div><div class="row" style="margin-top:6px">${npBadge(j.np)}${j.exp?` <span class="meta">Experience: ${esc(j.exp)} ${expFit(j)===1?"✓":expFit(j)===-1?"⚠ outside your "+prof.exp+" yrs":""}</span>`:""}<button class="btn alt" data-sv="${pool.indexOf(j)}">Save to tracker</button></div>${culture(j.c)}</div>`).join("")+(r.length>lim?`<div class="row" style="justify-content:center"><button class="btn alt" id="more">Show more (${r.length-lim} left)</button></div>`:"");
+if($("more"))$("more").onclick=()=>{lim+=100;results()};
+$("res").querySelectorAll("[data-sv]").forEach(b=>b.onclick=()=>{const p=pool[+b.dataset.sv];jobs.push({...p,id:Date.now(),s:"Saved",n:""});save();render();b.textContent="Saved ✓";b.disabled=true})}
+$("impb").onclick=()=>{try{let a=JSON.parse($("imp").value.replace(/```json|```/g,"").trim());if(!Array.isArray(a))a=a.jobs||[];let n=0;
+a.forEach(x=>{const j={t:x.title||x.t,c:x.company||x.c,l:x.location||x.l,src:x.source||x.src,pd:x.posted||x.pd,smin:+x.salary_min||+x.smin||0,smax:+x.salary_max||+x.smax||0,np:x.notice_period||x.np,exp:x.experience||x.exp,d:x.description||x.skills,u:x.url||x.u,sp:!!(x.salary_predicted||x.sp)};
+if(!j.t||!j.c||pool.some(p=>(j.u&&p.u===j.u)||(p.t===j.t&&p.c===j.c)))return;pool.push(j);n++});
+try{localStorage.setItem("ja_pool",JSON.stringify(pool))}catch(e){}
+$("im").textContent=`Imported ${n} new jobs.`;results()}catch(e){$("im").textContent="Could not read that. Paste the JSON array only."}};
+let RES={fams:[],skills:[]};
+function has(t,k){return new RegExp("(^|[^a-z])"+k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^a-z]|$)","i").test(t)}
+function expRange(s){s=String(s||"").toLowerCase();const u=(v,t)=>/^mo/.test(t||"")?v/12:v,U="(months?|mos?|yrs?|years?)";
+let m=s.match(new RegExp("(\\d+(?:\\.\\d+)?)\\s*"+U+"?\\s*(?:-|–|to)\\s*(\\d+(?:\\.\\d+)?)\\s*"+U+"?"));
+if(m){const b=m[4]||m[2]||"yrs",a=m[2]||b;return[u(+m[1],a),u(+m[3],b)]}
+m=s.match(/(\d+(?:\.\d+)?)\s*(?:years?|yrs?)\s*(?:and\s*)?(\d+)\s*(?:months?|mos?)/);if(m)return[+m[1]+(+m[2])/12,99];
+m=s.match(new RegExp("(\\d+(?:\\.\\d+)?)\\s*"+U+"?\\s*\\+"));if(m)return[u(+m[1],m[2]),99];
+m=s.match(/(\d+(?:\.\d+)?)\s*(?:months?|mos?)/);if(m)return[+m[1]/12,99];
+return null}
+function setExpUI(){const e=prof.exp;$("exp").value=e==null?"":e;$("ey").value=e==null?"":Math.floor(e+1e-6);$("em").value=e==null?"":Math.round((e-Math.floor(e+1e-6))*12)}
+function salOk(j){const lo=j.smin||0,hi=j.smax||0;if(!lo&&!hi)return !$("shs").checked;const l=lo||hi,h=hi||lo;return h>=prof.pmin&&(prof.pmax>=25||l<=prof.pmax)}
+function levelOk(j){const e=prof.exp,t=j.t||"";if(e==null)return true;if(e>=1.5&&/trainee|intern|fresher|apprentice/i.test(t))return false;if(e<6&&/senior manager|sr\.? manager|head|director|\bvp\b|avp|general manager|chief/i.test(t))return false;return true}
+function expFit(j){const r=expRange(j.exp);if(!r||prof.exp==null)return 0;return prof.exp>=r[0]-0.5&&prof.exp<=r[1]+1?1:-1}
+function resumeMatch(j){if(!RES.fams.length)return null;const txt=((j.t||"")+" "+(j.d||"")).toLowerCase();let dom=0,why=[];
+RES.fams.forEach((f,i)=>{if(FAM[f]&&FAM[f].t.test(j.t||"")){dom=Math.max(dom,[40,28,18][i]??10);why.push(f)}});
+const hits=RES.skills.filter(k=>has(txt,k)),sk=Math.min(35,hits.length*9),e=expFit(j),ex=e===1?15:e===0?7:0,hi=j.smax||j.smin||0,sa=!hi?5:(hi>=prof.pmin?10:0);
+return{m:Math.min(100,dom+sk+ex+sa),why:[...new Set([...why,...hits])].slice(0,6)}}
+function suggest(){const g=$("sg");if(!RES.fams.length){g.innerHTML="";return}
+const e=prof.exp,rl=[];RES.fams.slice(0,3).forEach(f=>DOMAINS[f].r.slice(0,2).forEach(r=>rl.push([r,f])));
+const jb=pool.map(j=>({j,...resumeMatch(j)})).filter(x=>x.m>0&&locOk(x.j)&&levelOk(x.j)&&expFit(x.j)!==-1&&salOk(x.j)).sort((a,b)=>b.m-a.m).slice(0,6);
+g.innerHTML=`<h2 style="margin-top:12px">Suggested roles${e!=null?" for "+e.toFixed(1)+" yrs experience":""}</h2><div class="chips">${rl.map(x=>`<button class="chip" data-sr="${esc(x[0])}" data-sd="${esc(x[1])}">${esc(x[0])}</button>`).join("")}</div><p class="meta">Best domains for your resume: ${RES.fams.slice(0,3).map(esc).join(", ")}<br>Detected skills: ${RES.skills.slice(0,14).map(esc).join(", ")||"none"}</p><h2>Best-fit jobs from your imported listings</h2>`+(jb.length?jb.map(x=>`<div class="job"><div class="row" style="justify-content:space-between"><h3>${esc(x.j.t)} · ${esc(x.j.c)}</h3><span class="score" style="background:${mc(x.m)}">${x.m}% resume match</span></div><div class="meta">${esc(x.j.src)} · ${agetxt(x.j)} · ${esc(x.j.l)||"Location n/a"} · Matches: ${x.why.map(esc).join(", ")||"general fit"}</div><div style="margin-top:4px">${salTxt(x.j)}</div><div class="row" style="margin-top:6px">${npBadge(x.j.np)}${x.j.u?`<a class="btn alt" href="${esc(x.j.u)}" target="_blank" rel="noopener">Open</a>`:""}</div></div>`).join(""):'<div class="empty">No imported listings yet. Import scraped jobs below to see matches.</div>');
+g.querySelectorAll("[data-sr]").forEach(b=>b.onclick=()=>{const d=b.dataset.sd;if(!selDom.includes(d))domSet([...selDom,d]);sel=b.dataset.sr;fillPsel();$("psel").value=sel;links();$("rm").scrollIntoView({behavior:"smooth"})})}
+async function readFile(f){const n=f.name.toLowerCase();if(n.endsWith(".txt"))return await f.text();const buf=await f.arrayBuffer();
+if(n.endsWith(".docx")){const z=await JSZip.loadAsync(buf);const x=await z.file("word/document.xml").async("string");return x.replace(/<\/w:p>/g,"\n").replace(/<[^>]+>/g," ")}
+if(n.endsWith(".pdf")){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";const d=await pdfjsLib.getDocument({data:buf}).promise;let t="";for(let i=1;i<=Math.min(d.numPages,6);i++){const p=await d.getPage(i);t+=(await p.getTextContent()).items.map(x=>x.str).join(" ")+"\n"}return t}
+throw new Error("type")}
+async function analyze(){const rs=$("rs");try{let t=$("rt").value;const f=$("rf").files[0];if(f){rs.textContent="Reading file...";t=await readFile(f)}
+if(!t||t.length<40){rs.textContent="Upload a PDF, DOCX or TXT, or paste your resume text.";return}
+const low=t.toLowerCase(),sc=[],sk=new Set();
+Object.keys(FAM).forEach(f=>{let n=0;FAM[f].k.forEach(k=>{if(has(low,k)){n++;sk.add(k)}});sc.push([f,n])});
+sc.sort((a,b)=>b[1]-a[1]);RES={fams:sc.filter(x=>x[1]>0).map(x=>x[0]),skills:[...sk]};
+const m=low.match(/(\d+(?:\.\d+)?)\+?\s*(?:years|yrs)(?:\s*(?:and)?\s*(\d+)\s*(?:months|mos))?/);if(m&&$("exp").value===""){prof.exp=+m[1]+(+m[2]||0)/12;setExpUI()}
+try{localStorage.setItem("ja_res",JSON.stringify(RES))}catch(e){}save();
+rs.textContent=RES.fams.length?"Analyzed. Check your experience value.":"No matching keywords found. Try pasting the text.";suggest()}catch(e){rs.textContent="Could not read that file. Paste the resume text instead."}}
+$("ra").onclick=analyze;
+const ex=()=>{const y=$("ey").value,m=$("em").value;prof.exp=(y===""&&m==="")?null:(+y||0)+(+m||0)/12;$("exp").value=prof.exp??"";save();render();results()};$("ey").onchange=ex;$("em").onchange=ex;
+const sx=()=>{prof.pmin=+$("esn").value||0;prof.pmax=+$("esx").value||99;$("pmin").value=prof.pmin;$("pmax").value=prof.pmax;save();render();results()};$("esn").onchange=sx;$("esx").onchange=sx;$("shs").onchange=results;
+async function fetchFeed(quiet){const u=$("feedu").value.trim()||"jobs.json";try{localStorage.setItem("ja_feed",u)}catch(e){}
+if(!quiet)$("fm").textContent="Fetching...";
+try{const r=await fetch(u+(u.includes("?")?"&":"?")+"t="+Date.now());if(!r.ok)throw 0;const d=await r.json();
+pool=pool.filter(p=>ageD(p)===null||ageD(p)<=30);$("imp").value=JSON.stringify(d);$("impb").click();$("fm").textContent="Updated. "+$("im").textContent}
+catch(e){$("fm").textContent="No live job service or jobs.json found here. If you host this yourself, deploy the /api service or add a jobs.json file."}}
+async function fetchLive(quiet){
+const per=selDom.length<=4?2:1,roles=[...new Set(selDom.flatMap(d=>DOMAINS[d].r.slice(0,d==="My roles"?3:per)))].slice(0,12),
+cities=selLoc.length&&selLoc.length<=2?selLoc.map(c=>c==="Delhi NCR"?"Delhi":c):[""],days=$("age").value,tasks=[];
+roles.forEach(r=>cities.forEach(c=>tasks.push([r,c])));const total=tasks.length,out=[];let done=0,fail=0,gone=false;
+async function work(){while(tasks.length&&!gone){const[r,c]=tasks.shift();
+try{const x=await fetch(`/api/jobs?what=${encodeURIComponent(r)}&where=${encodeURIComponent(c)}&days=${days}`);
+if(x.status===404){gone=true;return}if(!x.ok)throw 0;const a=await x.json();if(Array.isArray(a))out.push(...a)}catch(e){fail++}
+done++;if(!quiet)$("fm").textContent=`Fetching live jobs ${done}/${total}...`}}
+await Promise.all([work(),work(),work(),work()]);
+if(gone||(!out.length&&fail===total))return false;
+pool=pool.filter(p=>ageD(p)===null||ageD(p)<=30);$("imp").value=JSON.stringify(out);$("impb").click();
+$("fm").textContent=`Live update: ${out.length} jobs checked. `+$("im").textContent+(fail?` (${fail} searches failed)`:"");return true}
+async function refreshJobs(quiet){if(!selDom.length){if(!quiet)$("fm").textContent="Pick at least one domain first.";return}
+if(!quiet)$("fm").textContent="Fetching live jobs...";
+const ok=await fetchLive(quiet);if(ok){try{localStorage.setItem("ja_last",String(Date.now()))}catch(e){}}else await fetchFeed(quiet)}
+$("feedb").onclick=()=>refreshJobs(false);
+$("psel").onchange=()=>{sel=$("psel").value;links()};
+$("crb").onclick=()=>{const v=$("cr").value.trim();if(!v||cust.some(c=>c.toLowerCase()===v.toLowerCase()))return;cust.push(v);$("cr").value="";saveCust();applyCustom();domSet(selDom.includes("My roles")?selDom:[...selDom,"My roles"])};
+$("cr").onkeydown=e=>{if(e.key==="Enter")$("crb").click()};
+$("pname").onchange=()=>{prof.name=$("pname").value.trim();save();hdr()};$("cfgb").onclick=cfgDownload;$("srt").onchange=results;
+load();locUI();roles();render();results();
+try{const f=localStorage.getItem("ja_feed");if(f)$("feedu").value=f;const last=+localStorage.getItem("ja_last")||0;if(selDom.length&&Date.now()-last>36e5)refreshJobs(true)}catch(e){}
+</script></body></html>
